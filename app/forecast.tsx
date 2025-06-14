@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
@@ -301,7 +301,7 @@ const ForecastScreen = () => {
                       </Text>
                     </View>
                     <View style={styles.detailItem}>
-                      <Ionicons name="cloudy" size={20} color="#fff" />
+                      <Feather name="wind" size={20} color="#fff" />
                       <Text style={styles.detailText}>
                         {forecast.windspeed_10m_max[idx]}km/h
                       </Text>
@@ -387,34 +387,34 @@ const styles = StyleSheet.create({
   },
   forecastCard: {
     marginHorizontal: 20,
-    marginVertical: 8,
-    borderRadius: 20,
+    marginVertical: 6,
+    borderRadius: 16,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.2)",
   },
   cardContent: {
-    padding: 20,
+    padding: 16,
     backgroundColor: "rgba(255, 255, 255, 0.1)",
   },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 8,
   },
   dateContainer: {
     flexDirection: "row",
     alignItems: "center",
   },
   date: {
-    fontSize: 18,
+    fontSize: 16,
     color: "#fff",
     fontWeight: "600",
-    marginRight: 10,
+    marginRight: 8,
   },
   dateNumber: {
-    fontSize: 16,
+    fontSize: 14,
     color: "rgba(255, 255, 255, 0.7)",
   },
   weatherIndicator: {
@@ -430,12 +430,12 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   temp: {
-    fontSize: 32,
+    fontSize: 28,
     color: "#fff",
     fontWeight: "700",
   },
   moodEmoji: {
-    fontSize: 32,
+    fontSize: 28,
   },
   detailsContainer: {
     flexDirection: "row",

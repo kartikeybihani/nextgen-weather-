@@ -188,7 +188,10 @@ const WeatherDetailModal = ({
                             </MotiView>
                           </View>
                           <View style={styles.windStatText}>
-                            <Text style={styles.statValue}>{windSpeed}</Text>
+                            <Text style={styles.statValue}>
+                              {windSpeed}{" "}
+                              <Text style={{ fontSize: 10 }}>km/h</Text>
+                            </Text>
                             <Text style={styles.statLabel}>Wind</Text>
                           </View>
                         </View>
