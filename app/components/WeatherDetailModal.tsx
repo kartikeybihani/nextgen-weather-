@@ -27,6 +27,13 @@ interface WeatherDetailModalProps {
   windSpeed: number;
 }
 
+interface WeatherDetails {
+  sunrise: string;
+  sunset: string;
+  humidity: number;
+  pressure: number;
+}
+
 const WeatherDetailModal = ({
   visible,
   onClose,
@@ -39,6 +46,15 @@ const WeatherDetailModal = ({
 }: WeatherDetailModalProps) => {
   const [hourlyData, setHourlyData] = useState<number[]>([]);
   const [selectedPoint, setSelectedPoint] = useState<number | null>(null);
+  const [isLateNight, setIsLateNight] = useState(false);
+  const [weatherDetails, setWeatherDetails] = useState<WeatherDetails | null>(
+    null
+  );
+
+  useEffect(() => {
+    const hour = new Date().getHours();
+    setIsLateNight(hour >= 20 || hour < 5);
+  }, []);
 
   useEffect(() => {
     // Generate sample hourly temperature data
@@ -60,15 +76,22 @@ const WeatherDetailModal = ({
     datasets: [
       {
         data: hourlyData,
-        color: (opacity = 1) => `rgba(74, 144, 226, ${opacity})`,
+        color: (opacity = 1) =>
+          isLateNight
+            ? `rgba(255, 215, 0, ${opacity})`
+            : `rgba(74, 144, 226, ${opacity})`,
         strokeWidth: 2,
       },
     ],
   };
 
   const chartConfig = {
-    backgroundGradientFrom: "rgba(15, 32, 39, 0.8)",
-    backgroundGradientTo: "rgba(44, 83, 100, 0.8)",
+    backgroundGradientFrom: isLateNight
+      ? "rgba(13, 17, 23, 0.8)"
+      : "rgba(15, 32, 39, 0.8)",
+    backgroundGradientTo: isLateNight
+      ? "rgba(25, 33, 52, 0.8)"
+      : "rgba(44, 83, 100, 0.8)",
     color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
     strokeWidth: 2,
     barPercentage: 0.5,
@@ -76,13 +99,13 @@ const WeatherDetailModal = ({
     propsForDots: {
       r: "4",
       strokeWidth: "2",
-      stroke: "#4A90E2",
+      stroke: isLateNight ? "#FFD700" : "#4A90E2",
     },
     propsForLabels: {
       fontSize: 10,
       fontWeight: "500",
     },
-    fillShadowGradient: "#4A90E2",
+    fillShadowGradient: isLateNight ? "#FFD700" : "#4A90E2",
     fillShadowGradientOpacity: 0.3,
     decimalPlaces: 0,
     formatYLabel: (value: string) => `${value}°`,
@@ -110,11 +133,19 @@ const WeatherDetailModal = ({
           style={styles.modalContent}
         >
           <LinearGradient
-            colors={[
-              "rgba(15, 32, 39, 0.95)",
-              "rgba(32, 58, 67, 0.95)",
-              "rgba(44, 83, 100, 0.95)",
-            ]}
+            colors={
+              isLateNight
+                ? [
+                    "rgba(13, 17, 23, 0.95)",
+                    "rgba(25, 33, 52, 0.95)",
+                    "rgba(35, 45, 65, 0.95)",
+                  ]
+                : [
+                    "rgba(15, 32, 39, 0.95)",
+                    "rgba(32, 58, 67, 0.95)",
+                    "rgba(44, 83, 100, 0.95)",
+                  ]
+            }
             style={styles.gradient}
           >
             <BlurView intensity={80} tint="dark" style={styles.blurView}>
@@ -136,6 +167,15 @@ const WeatherDetailModal = ({
                     <Ionicons name="close" size={24} color="#fff" />
                   </TouchableOpacity>
                 </View>
+
+                {isLateNight && (
+                  <View style={styles.nightMessage}>
+                    <Ionicons name="moon" size={24} color="#FFD700" />
+                    <Text style={styles.nightMessageText}>
+                      Late Night Vibes
+                    </Text>
+                  </View>
+                )}
 
                 <View style={styles.temperatureSection}>
                   <View style={styles.temperatureContainer}>
@@ -340,6 +380,8 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 24,
     width: "100%",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
   },
   temperatureLeft: {
     flex: 1,
@@ -504,6 +546,24 @@ const styles = StyleSheet.create({
   tooltipText: {
     color: "#000",
     fontWeight: "600",
+  },
+  nightMessage: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255, 215, 0, 0.1)",
+    padding: 12,
+    borderRadius: 12,
+    marginHorizontal: 24,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "rgba(255, 215, 0, 0.2)",
+  },
+  nightMessageText: {
+    color: "#FFD700",
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 8,
   },
 });
 

@@ -2,6 +2,7 @@ import { Feather, Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
+import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import { MotiView } from "moti";
 import React, { useEffect, useRef, useState } from "react";
@@ -79,6 +80,10 @@ const ForecastScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedDay, setSelectedDay] = useState<any>(null);
+  const [location, setLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
   const scrollY = new Animated.Value(0);
   const refreshRotation = useRef(new Animated.Value(0)).current;
 
@@ -86,6 +91,19 @@ const ForecastScreen = () => {
     StatusBar.setBarStyle("light-content");
     StatusBar.setBackgroundColor("transparent");
   }, []);
+
+  const fetchForecast = async (lat: number, lon: number) => {
+    try {
+      const res = await axios.get(
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,uv_index_max,windspeed_10m_max&timezone=auto`
+      );
+      setForecast(res.data.daily);
+    } catch (error) {
+      console.error("Error fetching forecast:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -97,16 +115,8 @@ const ForecastScreen = () => {
       })
     ).start();
 
-    // Simulate refresh delay
-    await new Promise((resolve) => setTimeout(resolve, 600));
-
-    try {
-      const res = await axios.get(
-        "https://api.open-meteo.com/v1/forecast?latitude=28.6139&longitude=77.209&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,uv_index_max,windspeed_10m_max&timezone=auto"
-      );
-      setForecast(res.data.daily);
-    } catch (error) {
-      console.error("Error refreshing:", error);
+    if (location) {
+      await fetchForecast(location.latitude, location.longitude);
     }
 
     setRefreshing(false);
@@ -115,11 +125,14 @@ const ForecastScreen = () => {
 
   useEffect(() => {
     (async () => {
-      const res = await axios.get(
-        "https://api.open-meteo.com/v1/forecast?latitude=28.6139&longitude=77.209&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,uv_index_max,windspeed_10m_max&timezone=auto"
-      );
-      setForecast(res.data.daily);
-      setLoading(false);
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        return;
+      }
+      let position = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = position.coords;
+      setLocation({ latitude, longitude });
+      await fetchForecast(latitude, longitude);
     })();
   }, []);
 
@@ -154,10 +167,10 @@ const ForecastScreen = () => {
     outputRange: ["0deg", "360deg"],
   });
 
-  const getWeatherType = (precipitation: number, uvIndex: number) => {
-    if (precipitation > 0) return "rainy";
-    if (uvIndex > 5) return "sunny";
-    return "sunny";
+  const getWeatherEmoji = (precipitation: number, uvIndex: number) => {
+    if (precipitation > 0) return "🌧️";
+    if (uvIndex > 5) return "☀️";
+    return "⛅";
   };
 
   const getMoodEmoji = (temp: number) => {
@@ -170,7 +183,7 @@ const ForecastScreen = () => {
 
   return (
     <LinearGradient
-      colors={["#0F2027", "#203A43", "#2C5364"]}
+      colors={["#2C3E50", "#34495E", "#2C3E50"]}
       style={styles.container}
     >
       <Animated.View
@@ -226,7 +239,7 @@ const ForecastScreen = () => {
             (forecast.temperature_2m_max[idx] +
               forecast.temperature_2m_min[idx]) /
             2;
-          const weatherType = getWeatherType(
+          const weatherEmoji = getWeatherEmoji(
             forecast.precipitation_sum[idx],
             forecast.uv_index_max[idx]
           );
@@ -262,19 +275,7 @@ const ForecastScreen = () => {
                         {new Date(date).getDate()}
                       </Text>
                     </View>
-                    <View
-                      style={[
-                        styles.weatherIndicator,
-                        {
-                          backgroundColor:
-                            weatherType === "sunny"
-                              ? "rgba(255, 215, 0, 0.15)"
-                              : "rgba(135, 206, 235, 0.15)",
-                        },
-                      ]}
-                    >
-                      <WeatherIcon type={weatherType} size={24} />
-                    </View>
+                    <Text style={styles.weatherEmoji}>{weatherEmoji}</Text>
                   </View>
 
                   <View style={styles.tempContainer}>
@@ -401,7 +402,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 4,
   },
   dateContainer: {
     flexDirection: "row",
@@ -417,11 +418,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "rgba(255, 255, 255, 0.7)",
   },
-  weatherIndicator: {
-    padding: 8,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.2)",
+  weatherEmoji: {
+    fontSize: 24,
   },
   tempContainer: {
     flexDirection: "row",

@@ -23,6 +23,7 @@ interface WeatherData {
   windspeed_10m: number;
   relativehumidity_2m: number;
   precipitation: number;
+  apparent_temperature: number;
 }
 
 interface HistoricalWeatherData {
@@ -187,12 +188,13 @@ const getHistoricalComparison = (
   historical: number
 ): string => {
   const diff = current - historical;
-  if (Math.abs(diff) < 2) return "Similar to last year";
-  if (diff > 5) return "Much warmer than last year";
-  if (diff > 2) return "Warmer than last year";
-  if (diff < -5) return "Much colder than last year";
-  if (diff < -2) return "Colder than last year";
-  return "Similar to last year";
+  if (Math.abs(diff) < 2)
+    return "🌡️ Temperature twins! Like two peas in a pod!";
+  if (diff > 5) return "🔥 Hotter than a summer romance!";
+  if (diff > 2) return "☀️ Warming up like a morning coffee!";
+  if (diff < -5) return "❄️ Colder than my ex's heart!";
+  if (diff < -2) return "🧊 Chilling like a polar bear!";
+  return "🌡️ Temperature twins! Like two peas in a pod!";
 };
 
 export default function HomeScreen() {
@@ -270,7 +272,7 @@ export default function HomeScreen() {
 
       // Fetch current weather
       const currentRes = await axios.get(
-        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode,windspeed_10m,relativehumidity_2m,precipitation&timezone=auto`
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode,windspeed_10m,relativehumidity_2m,precipitation,apparent_temperature&timezone=auto`
       );
       setWeather(currentRes.data.current);
 
@@ -334,15 +336,14 @@ export default function HomeScreen() {
 
           <BlurView intensity={90} tint="dark" style={styles.glassCard}>
             <View style={styles.temperatureContainer}>
-              <Animated.View
-                style={[
-                  styles.weatherIconContainer,
-                  { transform: [{ rotate: spin }] },
-                ]}
-              >
-                <Ionicons name={icon} size={80} color="#fff" />
-              </Animated.View>
+              <Ionicons name={icon} size={80} color="#fff" />
               <Text style={styles.temp}>{weather.temperature_2m}°C</Text>
+              <View style={styles.feelsLikeContainer}>
+                <Ionicons name="thermometer-outline" size={16} color="#fff" />
+                <Text style={styles.feelsLikeText}>
+                  Feels like {weather.apparent_temperature}°C
+                </Text>
+              </View>
             </View>
 
             <View style={styles.metricsContainer}>
@@ -379,30 +380,23 @@ export default function HomeScreen() {
 
           {historicalWeather && (
             <View style={styles.historicalContainer}>
-              <View style={styles.timelineContainer}>
-                <View style={styles.timelineLine} />
-                <View style={styles.timelineContent}>
-                  <View style={styles.timelineItem}>
-                    <View style={styles.timelineDot} />
-                    <View style={styles.timelineInfo}>
-                      <Text style={styles.timelineYear}>Last Year</Text>
-                      <Text style={styles.timelineTemp}>
-                        {historicalWeather.temperature.toFixed(1)}°C
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.timelineItem}>
-                    <View style={styles.timelineDot} />
-                    <View style={styles.timelineInfo}>
-                      <Text style={styles.timelineYear}>Today</Text>
-                      <Text style={styles.timelineTemp}>
-                        {weather.temperature_2m.toFixed(1)}°C
-                      </Text>
-                    </View>
-                  </View>
+              <Text style={styles.factTitle}>Temperature Time Machine</Text>
+              <View style={styles.tempComparison}>
+                <View style={styles.tempBox}>
+                  <Text style={styles.tempLabel}>Last Year</Text>
+                  <Text style={styles.tempValue}>
+                    {historicalWeather.temperature.toFixed(1)}°C
+                  </Text>
+                </View>
+                <Text style={styles.tempArrow}>→</Text>
+                <View style={styles.tempBox}>
+                  <Text style={styles.tempLabel}>Today</Text>
+                  <Text style={styles.tempValue}>
+                    {weather.temperature_2m.toFixed(1)}°C
+                  </Text>
                 </View>
               </View>
-              <Text style={styles.historicalNote}>
+              <Text style={styles.factText}>
                 {getHistoricalComparison(
                   weather.temperature_2m,
                   historicalWeather.temperature
@@ -483,13 +477,13 @@ const styles = StyleSheet.create({
     textShadowColor: "rgba(0, 0, 0, 0.3)",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
-    marginBottom: 25,
+    marginBottom: 15,
   },
   metricsContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
     width: "100%",
-    marginTop: 20,
+    marginTop: 10,
   },
   metricContainer: {
     alignItems: "center",
@@ -554,17 +548,17 @@ const styles = StyleSheet.create({
   },
   factTitle: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "bold",
-    marginBottom: 10,
+    marginBottom: 8,
     textAlign: "center",
   },
   factText: {
     color: "#fff",
-    fontSize: 14,
+    fontSize: 13,
     opacity: 0.9,
     textAlign: "center",
-    lineHeight: 20,
+    lineHeight: 18,
   },
   centered: {
     flex: 1,
@@ -578,69 +572,55 @@ const styles = StyleSheet.create({
   historicalContainer: {
     width: "100%",
     backgroundColor: "rgba(255,255,255,0.1)",
+    padding: 15,
     borderRadius: 20,
-    padding: 20,
-    marginTop: 20,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
-  },
-  timelineContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+    marginTop: 15,
     marginBottom: 15,
+    alignItems: "center",
   },
-  timelineLine: {
-    width: 2,
-    height: "100%",
-    backgroundColor: "rgba(255,255,255,0.3)",
-    position: "absolute",
-    left: 15,
-  },
-  timelineContent: {
-    flex: 1,
-    marginLeft: 30,
-  },
-  timelineItem: {
+  tempComparison: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 20,
+    justifyContent: "center",
+    marginVertical: 10,
   },
-  timelineDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: "#fff",
-    marginRight: 15,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+  tempBox: {
+    backgroundColor: "rgba(255,255,255,0.15)",
+    padding: 10,
+    borderRadius: 12,
+    alignItems: "center",
+    minWidth: 100,
   },
-  timelineInfo: {
-    flex: 1,
-  },
-  timelineYear: {
+  tempLabel: {
     color: "#fff",
-    fontSize: 14,
+    fontSize: 12,
     opacity: 0.8,
     marginBottom: 4,
   },
-  timelineTemp: {
+  tempValue: {
     color: "#fff",
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "600",
   },
-  historicalNote: {
+  tempArrow: {
     color: "#fff",
-    fontSize: 16,
-    textAlign: "center",
+    fontSize: 24,
+    marginHorizontal: 10,
+    opacity: 0.7,
+  },
+  feelsLikeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.15)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginTop: 8,
+  },
+  feelsLikeText: {
+    color: "#fff",
+    fontSize: 14,
+    marginLeft: 4,
     opacity: 0.9,
-    fontStyle: "italic",
-    marginTop: 10,
   },
 });
