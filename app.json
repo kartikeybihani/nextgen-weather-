@@ -8,15 +8,30 @@
     "scheme": "weaterapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "extra": {
+      "eas": {
+        "projectId": "a475215f-7912-4dc9-9242-f48fa333186d"
+      },
+      "supabaseUrl": "https://vfbghyahfrlxkbxtzejw.supabase.co",
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmYmdoeWFoZnJseGtieHR6ZWp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUwMTAyNDEsImV4cCI6MjA2MDU4NjI0MX0.bX7zAYEWxcHW6vbiKU1_OdPF7QwkAoHp4NB8Iwp4ZXc",
+      "router": {}
+    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.kartikey08.weater-app",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.kartikey08.weaterapp"
     },
     "web": {
       "bundler": "metro",
@@ -33,10 +48,18 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#ffffff"
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "owner": "kartikey08"
   }
 }

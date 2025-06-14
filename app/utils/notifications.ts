@@ -1,9 +1,8 @@
-import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import supabase from "../lib/supabase";
 
-export async function registerForPushNotificationsAsync() {
-  if (!Device.isDevice) return;
+export async function registerForPushNotificationsAsync(latitude?: number, longitude?: number) {
+  // if (!Device.isDevice) return;
 
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
@@ -18,14 +17,24 @@ export async function registerForPushNotificationsAsync() {
     return;
   }
 
-  const token = (await Notifications.getExpoPushTokenAsync()).data;
-  console.log("📬 Push Token:", token);
-
   try {
-    await supabase.from("device_tokens").upsert({ token });
-  } catch (err) {
-    console.error("Error saving token:", err);
-  }
+    const token = (await Notifications.getExpoPushTokenAsync()).data;
+    const { error } = await supabase.from("device_tokens").upsert({ 
+      token,
+      latitude,
+      longitude 
+    }, { onConflict: "token" });
 
-  return token;
+    if (error) {
+      throw error;
+    }
+
+    console.log("✅ Push token saved to Supabase");
+    return token;
+  } catch (err) {
+    console.error("❌ Error saving push token:", err);
+    return null;
+  }
 }
+
+export default registerForPushNotificationsAsync;

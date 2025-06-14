@@ -89,7 +89,7 @@ const ForecastScreen = () => {
 
   useEffect(() => {
     StatusBar.setBarStyle("light-content");
-    StatusBar.setBackgroundColor("transparent");
+    // StatusBar.setBackgroundColor("transparent");
   }, []);
 
   const fetchForecast = async (lat: number, lon: number) => {

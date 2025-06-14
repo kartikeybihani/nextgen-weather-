@@ -1,18 +1,31 @@
-import * as Notifications from "expo-notifications";
+import * as Location from "expo-location";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { registerForPushNotificationsAsync } from "./utils/notifications";
 
 export default function RootLayout() {
   useEffect(() => {
-    (async () => {
-      const { status } = await Notifications.requestPermissionsAsync();
-      if (status !== "granted") return;
+    async function setupNotifications() {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          console.warn("Location permission not granted");
+          return;
+        }
 
-      const token = (await Notifications.getExpoPushTokenAsync()).data;
-      console.log("Expo Push Token:", token);
-    })();
+        const location = await Location.getCurrentPositionAsync({});
+        await registerForPushNotificationsAsync(
+          location.coords.latitude,
+          location.coords.longitude
+        );
+      } catch (error) {
+        console.error("Error getting location:", error);
+      }
+    }
+
+    setupNotifications();
   }, []);
 
   return (
