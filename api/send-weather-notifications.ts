@@ -1,7 +1,6 @@
 // File: /api/send-personalized-weather.ts
 import { createClient } from '@supabase/supabase-js';
 import axios from 'axios';
-import * as Location from 'expo-location';
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -24,12 +23,11 @@ export default async function handler(req: Request) {
       const lat = latitude ?? 28.61; // fallback to Delhi
       const lon = longitude ?? 77.20;
 
-      // Get city name using reverse geocoding
-      const [address] = await Location.reverseGeocodeAsync({
-        latitude: lat,
-        longitude: lon,
-      });
-      const cityName = address?.city || 'Your location';
+      // Get city name using OpenStreetMap Nominatim API
+      const geoRes = await axios.get(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10`
+      );
+      const cityName = geoRes.data.address?.city || geoRes.data.address?.town || 'Your location';
 
       // Get current hour
       const hour = new Date().getHours();
