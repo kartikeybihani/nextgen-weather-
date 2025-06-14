@@ -614,15 +614,6 @@ export default function MapScreen() {
       {showSpaceTheme && (
         <SpaceTheme onAnimationComplete={handleSpaceAnimationComplete} />
       )}
-
-      <Text style={styles.temperature}>
-        {weatherData?.temperature.toFixed(1)}
-        {getTempUnit()}
-      </Text>
-      <Text style={styles.feelsLike}>
-        Feels like {weatherData?.feelsLike.toFixed(1)}
-        {getTempUnit()}
-      </Text>
     </View>
   );
 }
