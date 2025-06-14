@@ -4,11 +4,12 @@ import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
   ColorValue,
+  Dimensions,
   Easing,
   ScrollView,
   StyleSheet,
@@ -17,6 +18,8 @@ import {
   View,
 } from "react-native";
 
+const { width, height } = Dimensions.get("window");
+
 interface WeatherData {
   temperature_2m: number;
   weathercode: number;
@@ -24,6 +27,7 @@ interface WeatherData {
   relativehumidity_2m: number;
   precipitation: number;
   apparent_temperature: number;
+  timezone: string;
 }
 
 interface HistoricalWeatherData {
@@ -52,53 +56,53 @@ const getWeatherIcon = (code: number | undefined): any => {
 
 const getWeatherTheme = (
   code: number | undefined,
-  isNight: boolean
+  isNight: boolean,
+  testHour?: number
 ): [ColorValue, ColorValue] => {
-  const hour = new Date().getHours();
+  const hour = testHour ?? new Date().getHours();
   const isDawn = hour >= 5 && hour < 7;
   const isDusk = hour >= 17 && hour < 19;
   const isDay = hour >= 7 && hour < 17;
+  const isMidday = hour >= 12 && hour < 15;
   const isLateNight = hour >= 23 || hour < 5;
 
   // Base themes for different times of day
   const timeThemes: Record<string, [ColorValue, ColorValue]> = {
     dawn: ["#FFB6C1", "#FFC0CB"], // Soft pink to light pink
     day: ["#87CEEB", "#B0E0E6"], // Sky blue to light blue
+    midday: ["#FFE5B4", "#FFD700"], // Warm yellow to gold
     dusk: ["#FF7F50", "#FFA07A"], // Coral to light salmon
     night: ["#0A1128", "#1C2541"], // Deep blue to navy
-    lateNight: ["#000033", "#000066"], // Darker blue for late night
-  };
-
-  // Weather-specific adjustments
-  const weatherAdjustments: Record<
-    string,
-    (base: [ColorValue, ColorValue]) => [ColorValue, ColorValue]
-  > = {
-    sunny: (base) => (isDay ? ["#FFD700", "#FFA500"] : base), // Golden to orange for sunny days
-    cloudy: (base) => (isDay ? ["#708090", "#A9A9A9"] : base), // Gray for cloudy
-    rainy: (base) => (isDay ? ["#2F4F4F", "#4A766E"] : ["#1A237E", "#283593"]), // Darker for rain
-    snowy: (base) => (isDay ? ["#E0FFFF", "#F0F8FF"] : base), // Light blue for snow
-    stormy: (base) => (isDay ? ["#483D8B", "#2F4F4F"] : ["#1A237E", "#0D47A1"]), // Dark for storms
+    lateNight: ["#000022", "#000044"], // Much darker night theme
   };
 
   // Select base theme based on time
   let baseTheme: [ColorValue, ColorValue];
   if (isDawn) baseTheme = timeThemes.dawn;
   else if (isDusk) baseTheme = timeThemes.dusk;
+  else if (isMidday) baseTheme = timeThemes.midday;
   else if (isDay) baseTheme = timeThemes.day;
   else if (isLateNight) baseTheme = timeThemes.lateNight;
-  else baseTheme = timeThemes.night;
+  else baseTheme = ["#0A1128", "#1C2541"]; // Slightly darker night theme
 
   // Apply weather adjustments
   if (!code && code !== 0) return baseTheme;
-  if (code === 0) return weatherAdjustments.sunny(baseTheme);
-  if ([1, 2, 3].includes(code)) return weatherAdjustments.cloudy(baseTheme);
-  if ([45, 48].includes(code)) return weatherAdjustments.cloudy(baseTheme);
+  if (code === 0)
+    return isDay
+      ? isMidday
+        ? ["#FFE5B4", "#FFD700"]
+        : ["#FFE5B4", "#FFD700"]
+      : baseTheme;
+  if ([1, 2, 3].includes(code))
+    return isDay ? ["#708090", "#A9A9A9"] : baseTheme;
+  if ([45, 48].includes(code))
+    return isDay ? ["#708090", "#A9A9A9"] : baseTheme;
   if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code))
-    return weatherAdjustments.rainy(baseTheme);
+    return isDay ? ["#2F4F4F", "#4A766E"] : ["#1A237E", "#283593"];
   if ([71, 73, 75, 85, 86].includes(code))
-    return weatherAdjustments.snowy(baseTheme);
-  if ([95, 96, 99].includes(code)) return weatherAdjustments.stormy(baseTheme);
+    return isDay ? ["#E0FFFF", "#F0F8FF"] : baseTheme;
+  if ([95, 96, 99].includes(code))
+    return isDay ? ["#483D8B", "#2F4F4F"] : ["#1A237E", "#0D47A1"];
 
   return baseTheme;
 };
@@ -197,6 +201,221 @@ const getHistoricalComparison = (
   return "🌡️ Temperature twins! Like two peas in a pod!";
 };
 
+// Add new components for weather effects
+const Star = ({
+  delay,
+  size,
+  opacity,
+  isMoving = false,
+}: {
+  delay: number;
+  size: number;
+  opacity: number;
+  isMoving?: boolean;
+}) => {
+  const twinkle = useRef(new Animated.Value(opacity)).current;
+  const translateX = useRef(new Animated.Value(Math.random() * width)).current;
+  const translateY = useRef(new Animated.Value(Math.random() * height)).current;
+
+  useEffect(() => {
+    const twinkleAnimation = Animated.sequence([
+      Animated.timing(twinkle, {
+        toValue: opacity * 0.3,
+        duration: 1000 + Math.random() * 1000,
+        useNativeDriver: true,
+        delay,
+      }),
+      Animated.timing(twinkle, {
+        toValue: opacity,
+        duration: 1000 + Math.random() * 1000,
+        useNativeDriver: true,
+      }),
+    ]);
+
+    Animated.loop(twinkleAnimation).start();
+
+    if (isMoving) {
+      const moveAnimation = Animated.sequence([
+        Animated.timing(translateX, {
+          toValue: Math.random() * width,
+          duration: 5000 + Math.random() * 5000,
+          useNativeDriver: true,
+          delay,
+        }),
+        Animated.timing(translateY, {
+          toValue: Math.random() * height,
+          duration: 5000 + Math.random() * 5000,
+          useNativeDriver: true,
+        }),
+      ]);
+
+      Animated.loop(moveAnimation).start();
+    }
+  }, []);
+
+  return (
+    <Animated.View
+      style={{
+        position: "absolute",
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: "#fff",
+        opacity: twinkle,
+        transform: [{ translateX }, { translateY }],
+      }}
+    />
+  );
+};
+
+const RainDrop = ({
+  delay,
+  duration,
+  startX,
+}: {
+  delay: number;
+  duration: number;
+  startX: number;
+}) => {
+  const translateY = useRef(new Animated.Value(-20)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(translateY, {
+          toValue: height + 20,
+          duration,
+          useNativeDriver: true,
+          delay,
+        }),
+        Animated.timing(translateY, {
+          toValue: -20,
+          duration: 0,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
+
+  return (
+    <Animated.View
+      style={{
+        position: "absolute",
+        left: startX,
+        transform: [{ translateY }],
+        width: 2,
+        height: 20,
+        backgroundColor: "rgba(255, 255, 255, 0.5)",
+        borderRadius: 1,
+      }}
+    />
+  );
+};
+
+const ShootingStar = () => {
+  const translateX = useRef(new Animated.Value(width)).current;
+  const translateY = useRef(new Animated.Value(0)).current;
+  const opacity = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    const startAnimation = () => {
+      translateX.setValue(width);
+      translateY.setValue(Math.random() * height * 0.3);
+      opacity.setValue(1);
+
+      Animated.parallel([
+        Animated.timing(translateX, {
+          toValue: -100,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateY, {
+          toValue: height * 0.7,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 0,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setTimeout(startAnimation, Math.random() * 5000 + 5000);
+      });
+    };
+
+    startAnimation();
+  }, []);
+
+  return (
+    <Animated.View
+      style={{
+        position: "absolute",
+        width: 100,
+        height: 2,
+        backgroundColor: "#fff",
+        opacity,
+        transform: [{ translateX }, { translateY }, { rotate: "45deg" }],
+      }}
+    >
+      <View
+        style={{
+          position: "absolute",
+          right: 0,
+          width: 20,
+          height: 2,
+          backgroundColor: "#fff",
+          opacity: 0.5,
+        }}
+      />
+    </Animated.View>
+  );
+};
+
+const WeatherEffects = ({
+  weatherCode,
+  isNight,
+  isLateNight,
+}: {
+  weatherCode: number;
+  isNight: boolean;
+  isLateNight: boolean;
+}) => {
+  if (isNight) {
+    return (
+      <View style={StyleSheet.absoluteFill}>
+        {[...Array(isLateNight ? 100 : 50)].map((_, i) => (
+          <Star
+            key={i}
+            delay={i * 100}
+            size={1 + Math.random() * 2}
+            opacity={0.3 + Math.random() * 0.7}
+            isMoving={isLateNight}
+          />
+        ))}
+        {isLateNight && <ShootingStar />}
+      </View>
+    );
+  }
+
+  if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(weatherCode)) {
+    return (
+      <View style={StyleSheet.absoluteFill}>
+        {[...Array(30)].map((_, i) => (
+          <RainDrop
+            key={i}
+            delay={i * 100}
+            duration={1000 + Math.random() * 1000}
+            startX={Math.random() * width}
+          />
+        ))}
+      </View>
+    );
+  }
+
+  return null;
+};
+
 export default function HomeScreen() {
   const router = useRouter();
   const [weather, setWeather] = useState<WeatherData | null>(null);
@@ -205,18 +424,55 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [location, setLocation] = useState<LocationData | null>(null);
   const [isNight, setIsNight] = useState(false);
+  const [isTestMode, setIsTestMode] = useState(false);
+  const [testHour, setTestHour] = useState(new Date().getHours());
+  const [currentTime, setCurrentTime] = useState(new Date());
   const spinValue = new Animated.Value(0);
+  const tapCount = useRef(0);
+  const lastTapTime = useRef(0);
+  const [isLateNight, setIsLateNight] = useState(false);
+
+  const handleCityPress = () => {
+    const now = Date.now();
+    if (now - lastTapTime.current < 1000) {
+      tapCount.current++;
+      if (tapCount.current >= 5) {
+        setIsTestMode(true);
+        tapCount.current = 0;
+      }
+    } else {
+      tapCount.current = 1;
+    }
+    lastTapTime.current = now;
+  };
+
+  const updateTestTime = (hour: number) => {
+    const newTime = new Date();
+    newTime.setHours(hour, 0, 0, 0);
+    setCurrentTime(newTime);
+    setTestHour(hour);
+  };
 
   useEffect(() => {
     const checkTime = () => {
-      const hour = new Date().getHours();
+      const hour = isTestMode ? testHour : new Date().getHours();
       setIsNight(hour >= 18 || hour <= 6);
+      setIsLateNight(hour >= 23 || hour <= 5);
     };
 
     checkTime();
-    const interval = setInterval(checkTime, 60000); // Check every minute
+    const interval = setInterval(checkTime, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [isTestMode, testHour]);
+
+  useEffect(() => {
+    if (!isTestMode) {
+      const timer = setInterval(() => {
+        setCurrentTime(new Date());
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [isTestMode]);
 
   useEffect(() => {
     (async () => {
@@ -309,18 +565,63 @@ export default function HomeScreen() {
     );
   }
 
-  const theme = getWeatherTheme(weather.weathercode, isNight);
+  const theme = getWeatherTheme(
+    weather.weathercode,
+    isNight,
+    isTestMode ? testHour : undefined
+  );
   const icon = getWeatherIcon(weather.weathercode);
 
   return (
     <LinearGradient colors={theme} style={styles.container}>
+      <WeatherEffects
+        weatherCode={weather.weathercode}
+        isNight={isNight}
+        isLateNight={isLateNight}
+      />
       <ScrollView style={styles.scrollView}>
         <LinearGradient
           colors={["rgba(0,0,0,0.2)", "rgba(0,0,0,0.4)"]}
           style={styles.overlay}
         >
           <View style={styles.header}>
-            <Text style={styles.city}>{location?.city}</Text>
+            <TouchableOpacity onPress={handleCityPress}>
+              <Text style={styles.city}>{location?.city}</Text>
+            </TouchableOpacity>
+            {isTestMode && (
+              <View style={styles.testControls}>
+                <TouchableOpacity
+                  style={styles.testButton}
+                  onPress={() => updateTestTime((testHour + 1) % 24)}
+                >
+                  <Text style={styles.testButtonText}>+1h</Text>
+                </TouchableOpacity>
+                <Text style={styles.testTime}>{testHour}:00</Text>
+                <TouchableOpacity
+                  style={styles.testButton}
+                  onPress={() => updateTestTime((testHour - 1 + 24) % 24)}
+                >
+                  <Text style={styles.testButtonText}>-1h</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.testButton, styles.testButtonClose]}
+                  onPress={() => {
+                    setIsTestMode(false);
+                    setCurrentTime(new Date());
+                  }}
+                >
+                  <Text style={styles.testButtonText}>Exit</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            <Text style={styles.time}>
+              {currentTime.toLocaleTimeString("en-US", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+                timeZone: weather?.timezone,
+              })}
+            </Text>
             <Text style={styles.date}>
               {new Date().toLocaleDateString("en-US", {
                 weekday: "long",
@@ -435,6 +736,12 @@ const styles = StyleSheet.create({
     textShadowColor: "rgba(0, 0, 0, 0.3)",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
+  },
+  time: {
+    fontSize: 18,
+    color: "#fff",
+    opacity: 0.9,
+    marginTop: 4,
   },
   date: {
     fontSize: 14,
@@ -622,5 +929,33 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginLeft: 4,
     opacity: 0.9,
+  },
+  testControls: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    padding: 8,
+    borderRadius: 12,
+  },
+  testButton: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginHorizontal: 4,
+  },
+  testButtonClose: {
+    backgroundColor: "rgba(255,0,0,0.3)",
+  },
+  testButtonText: {
+    color: "#fff",
+    fontSize: 12,
+  },
+  testTime: {
+    color: "#fff",
+    fontSize: 14,
+    marginHorizontal: 8,
   },
 });

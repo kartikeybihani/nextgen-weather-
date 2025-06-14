@@ -57,13 +57,14 @@ const WeatherDetailModal = ({
   }, []);
 
   useEffect(() => {
-    // Generate sample hourly temperature data
+    // Generate sample hourly temperature data for 6 points
     const generateHourlyData = () => {
       const data = [];
-      for (let i = 0; i < 24; i++) {
+      const times = [0, 6, 12, 18, 24, 30]; // 6 points
+      for (let i = 0; i < times.length; i++) {
         const baseTemp = (minTemp + maxTemp) / 2;
         const variation =
-          Math.sin((i / 24) * Math.PI) * ((maxTemp - minTemp) / 2);
+          Math.sin((times[i] / 24) * Math.PI) * ((maxTemp - minTemp) / 2);
         data.push(Math.round((baseTemp + variation) * 10) / 10);
       }
       return data;
@@ -72,7 +73,7 @@ const WeatherDetailModal = ({
   }, [minTemp, maxTemp]);
 
   const chartData = {
-    labels: ["00:00", "06:00", "12:00", "18:00", "24:00"],
+    labels: ["12 AM", "6 AM", "12 PM", "6 PM", "12 AM", "6 AM"],
     datasets: [
       {
         data: hourlyData,
@@ -113,8 +114,10 @@ const WeatherDetailModal = ({
     yAxisLabel: "°C",
     yAxisSuffix: "°",
     yAxisInterval: 1,
-    paddingRight: 40,
+    paddingRight: 20,
     paddingTop: 20,
+    paddingBottom: 20,
+    paddingLeft: 20,
   };
 
   return (
@@ -256,19 +259,21 @@ const WeatherDetailModal = ({
                     <LineChart
                       data={chartData}
                       width={width - 48}
-                      height={180}
+                      height={240}
                       chartConfig={chartConfig}
                       bezier
                       style={styles.chart}
-                      onDataPointClick={({ index }) => setSelectedPoint(index)}
+                      onDataPointClick={({ index, value }) =>
+                        setSelectedPoint(index)
+                      }
                       decorator={() =>
                         selectedPoint !== null ? (
                           <View
                             style={[
                               styles.tooltip,
                               {
-                                left: selectedPoint * ((width - 48) / 24),
-                                top: 10,
+                                right: (selectedPoint * (width - 48)) / 5 + 15,
+                                top: 15,
                               },
                             ]}
                           >
@@ -504,14 +509,33 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   chartWrapper: {
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    alignItems: "center",
+    justifyContent: "center",
+    height: 230,
+    borderRightWidth: 1,
+    borderRightColor: "rgba(255, 255, 255, 0.1)",
+    borderLeftWidth: 1,
+    borderLeftColor: "rgba(255, 255, 255, 0.1)",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 255, 255, 0.1)",
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255, 255, 255, 0.1)",
     borderRadius: 16,
-    padding: 12,
-    marginHorizontal: 8,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    // marginBottom: 16,
   },
   chart: {
     marginVertical: 8,
     borderRadius: 16,
+    alignSelf: "center",
+    height: 220,
   },
   detailsGrid: {
     flexDirection: "row",
@@ -542,10 +566,20 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 8,
     position: "absolute",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    zIndex: 1000,
   },
   tooltipText: {
     color: "#000",
     fontWeight: "600",
+    fontSize: 14,
   },
   nightMessage: {
     flexDirection: "row",
