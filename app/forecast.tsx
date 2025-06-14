@@ -19,6 +19,7 @@ import {
 } from "react-native";
 import { Circle, G, Path, Svg } from "react-native-svg";
 import WeatherDetailModal from "./components/WeatherDetailModal";
+import { useTemperature } from "./lib/TemperatureContext";
 
 const { width, height } = Dimensions.get("window");
 const STATUS_BAR_HEIGHT =
@@ -76,6 +77,7 @@ const WeatherIcon = ({
 
 const ForecastScreen = () => {
   const router = useRouter();
+  const { convertTemp, getTempUnit } = useTemperature();
   const [forecast, setForecast] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -183,7 +185,7 @@ const ForecastScreen = () => {
 
   return (
     <LinearGradient
-      colors={["#2C3E50", "#34495E", "#2C3E50"]}
+      colors={["#1A1A2E", "#16213E", "#0F3460"]}
       style={styles.container}
     >
       <Animated.View
@@ -264,7 +266,8 @@ const ForecastScreen = () => {
                 style={styles.forecastCard}
               >
                 <BlurView intensity={80} tint="dark" style={styles.cardContent}>
-                  <View style={styles.cardHeader}>
+                  <View style={styles.cardLeft}>
+                    <Text style={styles.weatherEmoji}>{weatherEmoji}</Text>
                     <View style={styles.dateContainer}>
                       <Text style={styles.date}>
                         {new Date(date).toLocaleDateString("en-US", {
@@ -275,37 +278,38 @@ const ForecastScreen = () => {
                         {new Date(date).getDate()}
                       </Text>
                     </View>
-                    <Text style={styles.weatherEmoji}>{weatherEmoji}</Text>
                   </View>
 
-                  <View style={styles.tempContainer}>
-                    <Text style={styles.temp}>
-                      {Math.round(forecast.temperature_2m_min[idx])}° →{" "}
-                      {Math.round(forecast.temperature_2m_max[idx])}°
-                    </Text>
-                    <Text style={styles.moodEmoji}>
-                      {getMoodEmoji(avgTemp)}
-                    </Text>
-                  </View>
+                  <View style={styles.cardRight}>
+                    <View style={styles.tempContainer}>
+                      <Text style={styles.temp}>
+                        {Math.round(forecast.temperature_2m_min[idx])}° →{" "}
+                        {Math.round(forecast.temperature_2m_max[idx])}°
+                      </Text>
+                      <Text style={styles.moodEmoji}>
+                        {getMoodEmoji(avgTemp)}
+                      </Text>
+                    </View>
 
-                  <View style={styles.detailsContainer}>
-                    <View style={styles.detailItem}>
-                      <Ionicons name="water" size={20} color="#fff" />
-                      <Text style={styles.detailText}>
-                        {forecast.precipitation_sum[idx]}mm
-                      </Text>
-                    </View>
-                    <View style={styles.detailItem}>
-                      <Ionicons name="sunny" size={20} color="#fff" />
-                      <Text style={styles.detailText}>
-                        {forecast.uv_index_max[idx]}
-                      </Text>
-                    </View>
-                    <View style={styles.detailItem}>
-                      <Feather name="wind" size={20} color="#fff" />
-                      <Text style={styles.detailText}>
-                        {forecast.windspeed_10m_max[idx]}km/h
-                      </Text>
+                    <View style={styles.detailsContainer}>
+                      <View style={styles.detailItem}>
+                        <Ionicons name="water" size={16} color="#fff" />
+                        <Text style={styles.detailText}>
+                          {forecast.precipitation_sum[idx]}mm
+                        </Text>
+                      </View>
+                      <View style={styles.detailItem}>
+                        <Ionicons name="sunny" size={16} color="#fff" />
+                        <Text style={styles.detailText}>
+                          {forecast.uv_index_max[idx]}
+                        </Text>
+                      </View>
+                      <View style={styles.detailItem}>
+                        <Feather name="wind" size={16} color="#fff" />
+                        <Text style={styles.detailText}>
+                          {forecast.windspeed_10m_max[idx]}km/h
+                        </Text>
+                      </View>
                     </View>
                   </View>
                 </BlurView>
@@ -388,76 +392,95 @@ const styles = StyleSheet.create({
   },
   forecastCard: {
     marginHorizontal: 20,
-    marginVertical: 6,
-    borderRadius: 16,
+    marginVertical: 8,
+    borderRadius: 24,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.2)",
+    borderColor: "rgba(255, 255, 255, 0.15)",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
   },
   cardContent: {
-    padding: 16,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-  },
-  cardHeader: {
+    padding: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 4,
+  },
+  cardLeft: {
+    width: 70,
+    alignItems: "center",
+    borderRightWidth: 1,
+    borderRightColor: "rgba(255, 255, 255, 0.1)",
+    paddingRight: 16,
+  },
+  cardRight: {
+    flex: 1,
+    marginLeft: 16,
   },
   dateContainer: {
-    flexDirection: "row",
     alignItems: "center",
+    marginTop: 8,
   },
   date: {
     fontSize: 16,
     color: "#fff",
     fontWeight: "600",
-    marginRight: 8,
+    marginBottom: 2,
   },
   dateNumber: {
     fontSize: 14,
     color: "rgba(255, 255, 255, 0.7)",
   },
   weatherEmoji: {
-    fontSize: 24,
+    fontSize: 28,
   },
   tempContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 15,
+    marginBottom: 12,
   },
   temp: {
-    fontSize: 28,
+    fontSize: 26,
     color: "#fff",
     fontWeight: "700",
+    letterSpacing: 0.5,
   },
   moodEmoji: {
-    fontSize: 28,
+    fontSize: 26,
   },
   detailsContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 10,
+    flexWrap: "wrap",
+    gap: 8,
   },
   detailItem: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(255, 255, 255, 0.1)",
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 12,
+    minWidth: 80,
   },
   detailText: {
     color: "#fff",
     marginLeft: 6,
-    fontSize: 14,
+    fontSize: 13,
+    fontWeight: "500",
   },
   centered: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#0F2027",
+    backgroundColor: "#1A1A2E",
   },
   loading: {
     fontSize: 18,
@@ -470,7 +493,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "#0F2027",
+    backgroundColor: "#1A1A2E",
   },
 });
 

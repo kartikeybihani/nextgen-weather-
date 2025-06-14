@@ -26,6 +26,7 @@ import RocketButton from "./components/RocketButton";
 import SpaceTheme from "./components/SpaceTheme";
 import WeatherBottomSheet from "./components/WeatherBottomSheet";
 import ZoomControls from "./components/ZoomControls";
+import { useTemperature } from "./lib/TemperatureContext";
 
 const { width, height } = Dimensions.get("window");
 
@@ -154,6 +155,36 @@ interface WeatherData {
   feelsLike: number;
 }
 
+const getWeatherDescription = (code: number): string => {
+  const weatherCodes: { [key: number]: string } = {
+    0: "Clear sky",
+    1: "Mainly clear",
+    2: "Partly cloudy",
+    3: "Overcast",
+    45: "Foggy",
+    48: "Depositing rime fog",
+    51: "Light drizzle",
+    53: "Moderate drizzle",
+    55: "Dense drizzle",
+    61: "Slight rain",
+    63: "Moderate rain",
+    65: "Heavy rain",
+    71: "Slight snow",
+    73: "Moderate snow",
+    75: "Heavy snow",
+    77: "Snow grains",
+    80: "Slight rain showers",
+    81: "Moderate rain showers",
+    82: "Violent rain showers",
+    85: "Slight snow showers",
+    86: "Heavy snow showers",
+    95: "Thunderstorm",
+    96: "Thunderstorm with slight hail",
+    99: "Thunderstorm with heavy hail",
+  };
+  return weatherCodes[code] || "Unknown";
+};
+
 export default function MapScreen() {
   const router = useRouter();
   const mapRef = useRef<MapView>(null);
@@ -175,6 +206,7 @@ export default function MapScreen() {
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [showSpaceTheme, setShowSpaceTheme] = useState(false);
   const searchScale = useSharedValue(1);
+  const { convertTemp, getTempUnit } = useTemperature();
 
   useEffect(() => {
     (async () => {
@@ -234,60 +266,20 @@ export default function MapScreen() {
 
       const data = await response.json();
 
-      // Validate the response data
       if (!data.current) {
         console.error("Invalid weather data received:", data);
         throw new Error("Invalid weather data format");
       }
 
-      // Convert weather code to description
-      const getWeatherDescription = (code: number): string => {
-        const weatherCodes: { [key: number]: string } = {
-          0: "Clear sky",
-          1: "Mainly clear",
-          2: "Partly cloudy",
-          3: "Overcast",
-          45: "Foggy",
-          48: "Depositing rime fog",
-          51: "Light drizzle",
-          53: "Moderate drizzle",
-          55: "Dense drizzle",
-          61: "Slight rain",
-          63: "Moderate rain",
-          65: "Heavy rain",
-          71: "Slight snow",
-          73: "Moderate snow",
-          75: "Heavy snow",
-          77: "Snow grains",
-          80: "Slight rain showers",
-          81: "Moderate rain showers",
-          82: "Violent rain showers",
-          85: "Slight snow showers",
-          86: "Heavy snow showers",
-          95: "Thunderstorm",
-          96: "Thunderstorm with slight hail",
-          99: "Thunderstorm with heavy hail",
-        };
-        return weatherCodes[code] || "Unknown";
-      };
-
       setWeatherData({
-        temperature: data.current.temperature_2m,
+        temperature: convertTemp(data.current.temperature_2m),
         description: getWeatherDescription(data.current.weather_code),
         humidity: data.current.relative_humidity_2m,
         windSpeed: data.current.wind_speed_10m,
-        feelsLike: data.current.apparent_temperature,
+        feelsLike: convertTemp(data.current.apparent_temperature),
       });
     } catch (error) {
-      console.error("Error fetching weather:", error);
-      // Set default weather data in case of error
-      setWeatherData({
-        temperature: 25,
-        description: "Unknown",
-        humidity: 0,
-        windSpeed: 0,
-        feelsLike: 25,
-      });
+      console.error("Error fetching weather data:", error);
     }
   };
 
@@ -622,6 +614,15 @@ export default function MapScreen() {
       {showSpaceTheme && (
         <SpaceTheme onAnimationComplete={handleSpaceAnimationComplete} />
       )}
+
+      <Text style={styles.temperature}>
+        {weatherData?.temperature.toFixed(1)}
+        {getTempUnit()}
+      </Text>
+      <Text style={styles.feelsLike}>
+        Feels like {weatherData?.feelsLike.toFixed(1)}
+        {getTempUnit()}
+      </Text>
     </View>
   );
 }
@@ -745,5 +746,20 @@ const styles = StyleSheet.create({
     left: 30,
     justifyContent: "center",
     alignItems: "center",
+  },
+  temperature: {
+    position: "absolute",
+    bottom: 20,
+    left: 20,
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "white",
+  },
+  feelsLike: {
+    position: "absolute",
+    bottom: 40,
+    left: 20,
+    fontSize: 16,
+    color: "white",
   },
 });

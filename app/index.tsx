@@ -17,6 +17,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useTemperature } from "./lib/TemperatureContext";
 
 const { width, height } = Dimensions.get("window");
 
@@ -418,44 +419,20 @@ const WeatherEffects = ({
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { isCelsius, toggleUnit, convertTemp, getTempUnit } = useTemperature();
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [historicalWeather, setHistoricalWeather] =
     useState<HistoricalWeatherData | null>(null);
   const [loading, setLoading] = useState(true);
   const [location, setLocation] = useState<LocationData | null>(null);
   const [isNight, setIsNight] = useState(false);
-  const [isTestMode, setIsTestMode] = useState(false);
-  const [testHour, setTestHour] = useState(new Date().getHours());
   const [currentTime, setCurrentTime] = useState(new Date());
   const spinValue = new Animated.Value(0);
-  const tapCount = useRef(0);
-  const lastTapTime = useRef(0);
   const [isLateNight, setIsLateNight] = useState(false);
-
-  const handleCityPress = () => {
-    const now = Date.now();
-    if (now - lastTapTime.current < 1000) {
-      tapCount.current++;
-      if (tapCount.current >= 5) {
-        setIsTestMode(true);
-        tapCount.current = 0;
-      }
-    } else {
-      tapCount.current = 1;
-    }
-    lastTapTime.current = now;
-  };
-
-  const updateTestTime = (hour: number) => {
-    const newTime = new Date();
-    newTime.setHours(hour, 0, 0, 0);
-    setCurrentTime(newTime);
-    setTestHour(hour);
-  };
 
   useEffect(() => {
     const checkTime = () => {
-      const hour = isTestMode ? testHour : new Date().getHours();
+      const hour = new Date().getHours();
       setIsNight(hour >= 18 || hour <= 6);
       setIsLateNight(hour >= 23 || hour <= 5);
     };
@@ -463,16 +440,14 @@ export default function HomeScreen() {
     checkTime();
     const interval = setInterval(checkTime, 60000);
     return () => clearInterval(interval);
-  }, [isTestMode, testHour]);
+  }, []);
 
   useEffect(() => {
-    if (!isTestMode) {
-      const timer = setInterval(() => {
-        setCurrentTime(new Date());
-      }, 1000);
-      return () => clearInterval(timer);
-    }
-  }, [isTestMode]);
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -565,11 +540,7 @@ export default function HomeScreen() {
     );
   }
 
-  const theme = getWeatherTheme(
-    weather.weathercode,
-    isNight,
-    isTestMode ? testHour : undefined
-  );
+  const theme = getWeatherTheme(weather.weathercode, isNight, undefined);
   const icon = getWeatherIcon(weather.weathercode);
 
   return (
@@ -585,43 +556,15 @@ export default function HomeScreen() {
           style={styles.overlay}
         >
           <View style={styles.header}>
-            <TouchableOpacity onPress={handleCityPress}>
-              <Text style={styles.city}>{location?.city}</Text>
-            </TouchableOpacity>
-            {isTestMode && (
-              <View style={styles.testControls}>
-                <TouchableOpacity
-                  style={styles.testButton}
-                  onPress={() => updateTestTime((testHour + 1) % 24)}
-                >
-                  <Text style={styles.testButtonText}>+1h</Text>
-                </TouchableOpacity>
-                <Text style={styles.testTime}>{testHour}:00</Text>
-                <TouchableOpacity
-                  style={styles.testButton}
-                  onPress={() => updateTestTime((testHour - 1 + 24) % 24)}
-                >
-                  <Text style={styles.testButtonText}>-1h</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.testButton, styles.testButtonClose]}
-                  onPress={() => {
-                    setIsTestMode(false);
-                    setCurrentTime(new Date());
-                  }}
-                >
-                  <Text style={styles.testButtonText}>Exit</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-            <Text style={styles.time}>
-              {currentTime.toLocaleTimeString("en-US", {
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: true,
-                timeZone: weather?.timezone,
-              })}
-            </Text>
+            <View style={styles.headerTop}>
+              <TouchableOpacity
+                style={styles.tempUnitButton}
+                onPress={toggleUnit}
+              >
+                <Text style={styles.tempUnitText}>{getTempUnit()}</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.city}>{location?.city}</Text>
             <Text style={styles.date}>
               {new Date().toLocaleDateString("en-US", {
                 weekday: "long",
@@ -638,11 +581,16 @@ export default function HomeScreen() {
           <BlurView intensity={90} tint="dark" style={styles.glassCard}>
             <View style={styles.temperatureContainer}>
               <Ionicons name={icon} size={80} color="#fff" />
-              <Text style={styles.temp}>{weather.temperature_2m}°C</Text>
+              <Text style={styles.temp}>
+                {convertTemp(weather.temperature_2m).toFixed(1)}
+                {getTempUnit()}
+              </Text>
               <View style={styles.feelsLikeContainer}>
                 <Ionicons name="thermometer-outline" size={16} color="#fff" />
                 <Text style={styles.feelsLikeText}>
-                  Feels like {weather.apparent_temperature}°C
+                  Feels like{" "}
+                  {convertTemp(weather.apparent_temperature).toFixed(1)}
+                  {getTempUnit()}
                 </Text>
               </View>
             </View>
@@ -686,21 +634,23 @@ export default function HomeScreen() {
                 <View style={styles.tempBox}>
                   <Text style={styles.tempLabel}>Last Year</Text>
                   <Text style={styles.tempValue}>
-                    {historicalWeather.temperature.toFixed(1)}°C
+                    {convertTemp(historicalWeather.temperature).toFixed(1)}
+                    {getTempUnit()}
                   </Text>
                 </View>
                 <Text style={styles.tempArrow}>→</Text>
                 <View style={styles.tempBox}>
                   <Text style={styles.tempLabel}>Today</Text>
                   <Text style={styles.tempValue}>
-                    {weather.temperature_2m.toFixed(1)}°C
+                    {convertTemp(weather.temperature_2m).toFixed(1)}
+                    {getTempUnit()}
                   </Text>
                 </View>
               </View>
               <Text style={styles.factText}>
                 {getHistoricalComparison(
-                  weather.temperature_2m,
-                  historicalWeather.temperature
+                  convertTemp(weather.temperature_2m),
+                  convertTemp(historicalWeather.temperature)
                 )}
               </Text>
             </View>
@@ -726,16 +676,40 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: "center",
-    marginTop: 50,
+    marginTop: 40,
     marginBottom: 20,
+    paddingHorizontal: 20,
+  },
+  headerTop: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    zIndex: 1,
+  },
+  tempUnitButton: {
+    backgroundColor: "rgba(255,255,255,0.1)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.15)",
+  },
+  tempUnitText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "500",
+    opacity: 0.9,
   },
   city: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: "bold",
     color: "#fff",
     textShadowColor: "rgba(0, 0, 0, 0.3)",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
+    marginTop: 10,
+    marginBottom: 8,
+    textAlign: "center",
   },
   time: {
     fontSize: 18,
@@ -929,33 +903,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginLeft: 4,
     opacity: 0.9,
-  },
-  testControls: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 10,
-    backgroundColor: "rgba(0,0,0,0.3)",
-    padding: 8,
-    borderRadius: 12,
-  },
-  testButton: {
-    backgroundColor: "rgba(255,255,255,0.2)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    marginHorizontal: 4,
-  },
-  testButtonClose: {
-    backgroundColor: "rgba(255,0,0,0.3)",
-  },
-  testButtonText: {
-    color: "#fff",
-    fontSize: 12,
-  },
-  testTime: {
-    color: "#fff",
-    fontSize: 14,
-    marginHorizontal: 8,
   },
 });

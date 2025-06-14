@@ -3,6 +3,7 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { TemperatureProvider } from "./lib/TemperatureContext";
 import { registerForPushNotificationsAsync } from "./utils/notifications";
 
 export default function RootLayout() {
@@ -29,19 +30,21 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: "transparent" },
-          animation: "fade",
-        }}
-      >
-        <Stack.Screen name="index" />
-        <Stack.Screen name="forecast" />
-        <Stack.Screen name="map" />
-      </Stack>
-      <StatusBar style="light" />
-    </GestureHandlerRootView>
+    <TemperatureProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: "transparent" },
+            animation: "fade",
+          }}
+        >
+          <Stack.Screen name="index" />
+          <Stack.Screen name="forecast" />
+          <Stack.Screen name="map" />
+        </Stack>
+        <StatusBar style="light" />
+      </GestureHandlerRootView>
+    </TemperatureProvider>
   );
 }
