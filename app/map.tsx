@@ -185,8 +185,8 @@ export default function MapScreen() {
         setCurrentRegion({
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
+          latitudeDelta: 0.05,
+          longitudeDelta: 0.05,
         });
       }
     })();
@@ -403,6 +403,11 @@ export default function MapScreen() {
   const handleClose = () => {
     setShowBottomSheet(false);
     setSelectedLocation(null);
+
+    // Clear search if it's open
+    if (isSearchFocused) {
+      handleClearSearch();
+    }
 
     // Perform 4 zoom outs with increasing delays
     handleZoomOut();
@@ -631,7 +636,7 @@ const styles = StyleSheet.create({
   },
   header: {
     position: "absolute",
-    top: 50,
+    top: 60,
     left: 20,
     right: 20,
     flexDirection: "row",
