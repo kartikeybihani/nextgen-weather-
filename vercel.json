@@ -1,11 +1,11 @@
 {
     "crons": [
       {
-        "path": "/api/send-weather-updates",
+        "path": "/api/send-personalized-weather",
         "schedule": "0 */8 * * *"
       },
       {
-        "path": "/api/send-weather-updates",
+        "path": "/api/send-personalized-weather",
         "schedule": "0 */2 * * *"
       }
       
